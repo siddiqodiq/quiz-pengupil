@@ -13,84 +13,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Stage 1: Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      # Stage 2: Install dependencies
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y php php-cli php-mysql unzip
-          composer install
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y php php-cli php-mysql unzip
+        composer install
 
-      # Stage 3: Start MySQL service
-      - name: Start MySQL service
-        run: |
-          sudo systemctl start mysql
-          sudo mysql -e "CREATE DATABASE IF NOT EXISTS quiz_pengupil;"
-          sudo mysql -e "GRANT ALL PRIVILEGES ON quiz_pengupil.* TO 'root'@'localhost' IDENTIFIED BY '';"
-          sudo mysql -e "FLUSH PRIVILEGES;"
+    - name: Start MySQL service
+      run: |
+        sudo systemctl start mysql
+        sudo mysql -e "CREATE DATABASE IF NOT EXISTS quiz_pengupil;"
+        sudo mysql -e "GRANT ALL PRIVILEGES ON quiz_pengupil.* TO 'root'@'localhost' IDENTIFIED BY '';"
 
-      # Stage 4: Import database
-      - name: Import database
-        run: |
-          mysql -h127.0.0.1 -uroot quiz_pengupil < db/quiz_pengupil.sql
+    - name: Start PHP server
+      run: |
+        php -S 127.0.0.1:8000 -t . > server.log 2>&1 &
 
-      # Stage 5: Start PHP server
-      - name: Start PHP server
-        run: |
-          php -S 127.0.0.1:8000 -t . > server.log 2>&1 &
+    - name: Wait for server to start
+      run: sleep 10
 
-      # Stage 6: Wait for server to start
-      - name: Wait for server to start
-        run: sleep 10
+    - name: Set Up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
 
-      # Stage 7: Set Up Python
-      - name: Set Up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install selenium webdriver-manager pytest
 
-      # Stage 8: Install Python dependencies
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install selenium webdriver-manager pytest
+    - name: Start Selenium WebDriver (Chrome)
+      run: |
+        sudo apt update
+        sudo apt install -y google-chrome-stable
 
-      # Stage 9: Install Chrome and ChromeDriver
-      - name: Install Chrome and ChromeDriver
-        run: |
-          sudo apt update
-          sudo apt install -y wget unzip
-          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-          sudo apt update
-          sudo apt install -y google-chrome-stable
-          CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
-          CHROMEDRIVER_VERSION=$(curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION)
-          wget -O chromedriver.zip https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
-          sudo unzip chromedriver.zip -d /usr/local/bin/
-          sudo chmod +x /usr/local/bin/chromedriver
-          rm chromedriver.zip
+    - name: Run Selenium Tests
+      run: python tests/test_login_register.py
 
-      # Stage 10: Run Selenium Tests
-      - name: Run Selenium Tests
-        run: |
-          python -m pytest tests/test_login_register.py --log-file=test-results/test_log.txt --junitxml=test-results/results.xml
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: selenium-test-results
+        path: test-results/
 
-      # Stage 11: Upload Test Results
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: selenium-test-results
-          path: test-results/
-
-      # Stage 12: Upload Test Logs
-      - name: Upload Test Logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: selenium-test-logs
-          path: test-results/test_log.txt
+    - name: Upload Test Logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: selenium-test-logs
+        path: test-results/test_log.txt
