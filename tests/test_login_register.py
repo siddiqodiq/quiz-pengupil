@@ -1,176 +1,116 @@
-import os
-import logging
-import requests
-import time
+import unittest
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import time  # Impor modul time
 
-# Konfigurasi Logging
-LOG_DIR = "test-results"
-os.makedirs(LOG_DIR, exist_ok=True)
-logging.basicConfig(
-    filename=os.path.join(LOG_DIR, "test_log.txt"),
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+class LoginRegisterTest(unittest.TestCase):
+    def setUp(self):
+        options = webdriver.FirefoxOptions()
+        options.add_argument('--ignore-ssl-errors=yes')
+        options.add_argument('--ignore-certificate-errors')
+        server = 'http://localhos:4444'
+        self.browser = webdriver.Remote(command_executor=server, options=options)
+        self.browser.implicitly_wait(10)
+        self.addCleanup(self.browser.quit)
 
-# Fungsi untuk cek apakah server sudah aktif
-def wait_for_server(url, timeout=30):
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                print("✅ Server is up and running!")
-                return True
-        except requests.exceptions.ConnectionError:
-            print("⏳ Waiting for server to start...")
-        time.sleep(5)
-    raise RuntimeError("❌ Server failed to start!")
+    def test_login_success(self):
+        """Test Case 1: Login Berhasil"""
+        self.browser.get("http://localhost:8000/login.php")
+        username_input = self.browser.find_element(By.ID, "username")
+        password_input = self.browser.find_element(By.ID, "InputPassword")
+        submit_button = self.browser.find_element(By.NAME, "submit")
 
-# Cek server sebelum Selenium berjalan
-BASE_URL = "http://127.0.0.1:8000/"
-wait_for_server(BASE_URL)
+        username_input.send_keys("syubbanul")
+        password_input.send_keys("password123")
+        submit_button.click()
 
-# Set up WebDriver
-chrome_options = webdriver.ChromeOptions()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-driver = webdriver.Chrome(options=chrome_options)
+        # Cek redirect ke index.php
+        self.assertIn("index.php", self.browser.current_url)
+        time.sleep(5)  # Jeda 5 detik
 
-# List untuk menyimpan hasil test
-test_results = []
+    def test_login_failed_wrong_username(self):
+        """Test Case 2: Login Gagal (Username Salah)"""
+        self.browser.get("http://localhost:8000/login.php")
+        username_input = self.browser.find_element(By.ID, "username")
+        password_input = self.browser.find_element(By.ID, "InputPassword")
+        submit_button = self.browser.find_element(By.NAME, "submit")
 
-def log_result(test_name, status, message=""):
-    result = f"{test_name}: {status} - {message}"
-    print(result)
-    logging.info(result)
+        username_input.send_keys("user_tidak_ada")
+        password_input.send_keys("password123")
+        submit_button.click()
 
-def run_test(test_function):
-    """
-    Helper function untuk menjalankan setiap test case tanpa menghentikan eksekusi.
-    Jika ada error, akan dicatat dan test berikutnya tetap dijalankan.
-    """
-    try:
-        test_function()
-        test_results.append((test_function.__name__, "✅ PASSED", ""))
-    except AssertionError as e:
-        test_results.append((test_function.__name__, "❌ FAILED", str(e)))
-    except Exception as e:
-        test_results.append((test_function.__name__, "⚠️ ERROR", str(e)))
+        # Cek pesan error
+        error_message = self.browser.find_element(By.CLASS_NAME, "alert-danger").text
+        self.assertEqual(error_message, "Username atau Password salah !!")
+        time.sleep(5)  # Jeda 5 detik
 
-def test_login_valid():
-    driver.get(BASE_URL + "login.php")
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, "username"))).send_keys("testuser")
-    driver.find_element(By.ID, "InputPassword").send_keys("Test@123")
-    driver.find_element(By.NAME, "submit").click()
+    def test_login_failed_empty_data(self):
+        """Test Case 3: Login Gagal (Data Kosong)"""
+        self.browser.get("http://localhost:8000/login.php")
+        submit_button = self.browser.find_element(By.NAME, "submit")
+        submit_button.click()
 
-    time.sleep(2)
-    assert "Not Found" not in driver.page_source, "Error: index.php tidak ditemukan setelah login."
+        # Cek pesan error
+        error_message = self.browser.find_element(By.CLASS_NAME, "alert-danger").text
+        self.assertEqual(error_message, "Data tidak boleh kosong !!")
+        time.sleep(5)  # Jeda 5 detik
 
-def test_login_invalid():
-    driver.get(BASE_URL + "login.php")
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, "username"))).send_keys("wronguser")
-    driver.find_element(By.ID, "InputPassword").send_keys("WrongPass")
-    driver.find_element(By.NAME, "submit").click()
+    def test_register_success(self):
+        """Test Case 4: Registrasi Berhasil"""
+        self.browser.get("http://localhost:8000/register.php")
+        name_input = self.browser.find_element(By.ID, "name")
+        email_input = self.browser.find_element(By.ID, "InputEmail")
+        username_input = self.browser.find_element(By.ID, "username")
+        password_input = self.browser.find_element(By.ID, "InputPassword")
+        repassword_input = self.browser.find_element(By.ID, "InputRePassword")
+        submit_button = self.browser.find_element(By.NAME, "submit")
 
-    time.sleep(2)
-    assert "Register User Gagal" in driver.page_source, "Error: Pesan gagal login tidak muncul."
+        name_input.send_keys("Syubbanul Siddiq")
+        email_input.send_keys("siddiq@example.com")
+        username_input.send_keys("siddiq_new")
+        password_input.send_keys("password123")
+        repassword_input.send_keys("password123")
+        submit_button.click()
 
-def test_login_empty():
-    driver.get(BASE_URL + "login.php")
-    driver.find_element(By.NAME, "submit").click()
+        # Cek redirect ke index.php
+        self.assertIn("index.php", self.browser.current_url)
+        time.sleep(5)  # Jeda 5 detik
 
-    time.sleep(2)
-    assert "Data tidak boleh kosong" in driver.page_source, "Error: Input kosong tidak ditangani dengan benar."
+    def test_register_failed_duplicate_username(self):
+        """Test Case 5: Registrasi Gagal (Username Sudah Ada)"""
+        self.browser.get("http://localhost:8000/register.php")
+        name_input = self.browser.find_element(By.ID, "name")
+        email_input = self.browser.find_element(By.ID, "InputEmail")
+        username_input = self.browser.find_element(By.ID, "username")
+        password_input = self.browser.find_element(By.ID, "InputPassword")
+        repassword_input = self.browser.find_element(By.ID, "InputRePassword")
+        submit_button = self.browser.find_element(By.NAME, "submit")
 
-def test_register_valid():
-    driver.get(BASE_URL + "register.php")
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, "username"))).send_keys("newuser")
-    driver.find_element(By.ID, "name").send_keys("New User")
-    driver.find_element(By.ID, "InputEmail").send_keys("newuser@example.com")
-    driver.find_element(By.ID, "InputPassword").send_keys("Test@123")
-    driver.find_element(By.ID, "InputRePassword").send_keys("Test@123")
-    driver.find_element(By.NAME, "submit").click()
+        name_input.send_keys("Jane Doe")
+        email_input.send_keys("jane.doe@example.com")
+        username_input.send_keys("siddiq")  # Username sudah ada
+        password_input.send_keys("password123")
+        repassword_input.send_keys("password123")
+        submit_button.click()
 
-    time.sleep(2)
-    assert "Not Found" not in driver.page_source, "Error: index.php tidak ditemukan setelah registrasi."
+        # Cek pesan error
+        error_message = self.browser.find_element(By.CLASS_NAME, "alert-danger").text
+        self.assertEqual(error_message, "Username sudah terdaftar !!")
+        time.sleep(5)  # Jeda 5 detik
 
-def test_register_existing_user():
-    driver.get(BASE_URL + "register.php")
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, "username"))).send_keys("existinguser")
-    driver.find_element(By.ID, "name").send_keys("Existing User")
-    driver.find_element(By.ID, "InputEmail").send_keys("existing@example.com")
-    driver.find_element(By.ID, "InputPassword").send_keys("Test@123")
-    driver.find_element(By.ID, "InputRePassword").send_keys("Test@123")
-    driver.find_element(By.NAME, "submit").click()
+    def test_register_failed_empty_data(self):
+        """Test Case 6: Registrasi Gagal (Data Kosong)"""
+        self.browser.get("http://localhost:8000/register.php")
+        submit_button = self.browser.find_element(By.NAME, "submit")
+        submit_button.click()
 
-    time.sleep(2)
-    assert "Username sudah terdaftar" in driver.page_source, "Error: Sistem tidak mendeteksi username yang sudah ada."
+        # Cek pesan error
+        error_message = self.browser.find_element(By.CLASS_NAME, "alert-danger").text
+        self.assertEqual(error_message, "Data tidak boleh kosong !!")
+        time.sleep(5)  # Jeda 5 detik
 
-def test_register_password_mismatch():
-    driver.get(BASE_URL + "register.php")
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, "username"))).send_keys("anotheruser")
-    driver.find_element(By.ID, "name").send_keys("Another User")
-    driver.find_element(By.ID, "InputEmail").send_keys("another@example.com")
-    driver.find_element(By.ID, "InputPassword").send_keys("Test@123")
-    driver.find_element(By.ID, "InputRePassword").send_keys("WrongPass")
-    driver.find_element(By.NAME, "submit").click()
-
-    time.sleep(2)
-    assert "Password tidak sama" in driver.page_source, "Error: Sistem tidak menangani password yang tidak cocok dengan benar."
-
-def test_sql_injection_login():
-    driver.get(BASE_URL + "login.php")
-
-    # Pastikan elemen ditemukan sebelum mengisi
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, "username"))).send_keys("' OR '1'='1")
-    driver.find_element(By.ID, "InputPassword").send_keys("' OR '1'='1")
-    driver.find_element(By.NAME, "submit").click()
-
-    time.sleep(2)
-    assert "Not Found" not in driver.page_source, "Error: SQL Injection berhasil, sistem tidak aman!"
-
-def test_sql_injection_register():
-    try:
-        driver.get(BASE_URL + "register.php")
-        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, "username"))).send_keys("' OR '1'='1")
-        driver.find_element(By.ID, "name").send_keys("' OR '1'='1")
-        driver.find_element(By.ID, "InputEmail").send_keys("hacker@example.com")
-        driver.find_element(By.ID, "InputPassword").send_keys("' OR '1'='1")
-        driver.find_element(By.ID, "InputRePassword").send_keys("' OR '1'='1")
-        driver.find_element(By.NAME, "submit").click()
-
-        WebDriverWait(driver, 5).until(EC.url_contains("index.php"))
-        log_result("test_sql_injection_register", "❌ FAILED", "SQL Injection berhasil masuk ke database!")
-
-    except Exception as e:
-        log_result("test_sql_injection_register", "✅ PASSED", f"SQL Injection dicegah! Error: {str(e)}")
-
-# Jalankan semua test case menggunakan run_test()
-test_cases = [
-    test_login_valid,
-    test_login_invalid,
-    test_login_empty,
-    test_register_valid,
-    test_register_existing_user,
-    test_register_password_mismatch,
-    test_sql_injection_login,
-    test_sql_injection_register
-]
-
-for test in test_cases:
-    run_test(test)
-
-# Cetak hasil semua test dengan format rapi
-print("\n=== TEST RESULTS ===")
-print(f"{'Test Case':<30} {'Status':<10} {'Message'}")
-print("="*80)
-for name, status, message in test_results:
-    print(f"{name:<30} {status:<10} {message}")
-
-# Tutup browser
-driver.quit()
+if __name__ == '__main__':
+    unittest.main(verbosity=2, warnings='ignore')
