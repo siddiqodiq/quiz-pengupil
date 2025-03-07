@@ -133,12 +133,11 @@ def test_register_failed_empty_data():
 
 # Jalankan semua test case menggunakan run_test()
 test_cases = [
-    test_register_success,
     test_login_success,
     test_login_failed_username,
     test_login_failed_password,
     test_login_failed_empty_data,
-   
+    test_register_success,
     test_register_failed_username_exists,
     test_register_failed_password_mismatch,
     test_register_failed_empty_data
