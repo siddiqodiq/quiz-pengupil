@@ -1,4 +1,4 @@
-name: CI/CD Pipeline for PHP Application with Selenium
+name: Selenium Tests
 
 on:
   push:
@@ -9,62 +9,79 @@ on:
       - main
 
 jobs:
-  test:
+  selenium-test:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
+    - name: Create a temporary index.php
+      run: |
+        echo "<?php echo 'Server is running!'; ?>" > index.php
 
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install selenium pytest
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y php php-cli php-mysql unzip google-chrome-stable mariadb-server mariadb-client curl
 
-      - name: Set up MySQL
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mysql-server
-          sudo systemctl start mysql
-          sudo mysql -e "CREATE DATABASE quiz_pengupil;"
-          sudo mysql -e "CREATE USER 'root'@'localhost' IDENTIFIED BY '';"
-          sudo mysql -e "GRANT ALL PRIVILEGES ON quiz_pengupil.* TO 'root'@'localhost';"
-          sudo mysql -e "FLUSH PRIVILEGES;"
-          sudo mysql quiz_pengupil < db/quiz_pengupil.sql
+    - name: Start MariaDB Service
+      run: |
+        sudo systemctl start mariadb
+        sudo systemctl enable mariadb
+        sudo systemctl restart mariadb
 
-      - name: Set up PHP
-        run: |
-          sudo apt-get install -y php-cli php-mysql
-          php -S 127.0.0.1:8000 -t . &
-          echo "PHP server started on port 8000"
+    - name: Setup Database
+      run: |
+        sudo mysql --user=root --execute="CREATE DATABASE IF NOT EXISTS quiz_pengupil;"
+        sudo mysql --user=root quiz_pengupil < db/quiz_pengupil.sql
+        sudo mysql --user=root --execute="GRANT ALL PRIVILEGES ON quiz_pengupil.* TO 'root'@'localhost' IDENTIFIED BY '';"
+        sudo mysql --user=root --execute="FLUSH PRIVILEGES;"
 
-      - name: Set up ChromeDriver
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y wget unzip
-          wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
-          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
-          sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-          CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
-          CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION")
-          wget -q "https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip"
-          unzip chromedriver_linux64.zip
-          sudo mv chromedriver /usr/local/bin/chromedriver
-          sudo chmod +x /usr/local/bin/chromedriver
-          chromedriver --version
+    - name: Verify Database Setup
+      run: |
+        sudo mysql -u root -e "USE quiz_pengupil; SHOW TABLES;"
 
-      - name: Run Selenium tests
-        run: |
-          python -m pytest tests/test_login_register.py -v
+    - name: Start PHP server
+      run: |
+        nohup php -S 127.0.0.1:8000 -t . > server.log 2>&1 &
+        sleep 5
+        echo "✅ Checking server log:"
+        cat server.log
 
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: test-results/
+    - name: Wait for server to start
+      run: |
+        for i in {1..10}; do
+          curl -s http://127.0.0.1:8000/ && echo "✅ Server is up!" && exit 0
+          echo "⏳ Waiting for server..."
+          sleep 2
+        done
+        echo "❌ Server failed to start!"
+        exit 1
+
+    - name: Set Up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Python Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install selenium webdriver-manager pytest chromedriver-autoinstaller
+
+    - name: Run Selenium Tests
+      run: python tests/test_login_register.py
+
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: selenium-test-results
+        path: test-results/
+
+    - name: Upload Test Logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: selenium-test-logs
+        path: test-results/test_log.txt
