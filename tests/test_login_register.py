@@ -111,7 +111,7 @@ def test_register_failed_username_exists():
     time.sleep(2)
     driver.get("http://127.0.0.1:8000/register.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys("Jane Doe")
-    driver.find_element(By.NAME, "email").send_keys("jane.doe@example.com")
+    driver.find_element(By.NAME, "email").send_keys("siddiqodiq@gmail.com")
     driver.find_element(By.NAME, "username").send_keys("siddiq")
     driver.find_element(By.NAME, "password").send_keys("password123")
     driver.find_element(By.NAME, "repassword").send_keys("password123")
@@ -128,8 +128,6 @@ def test_register_failed_username_exists():
 
 # Test Case 7: Registrasi Gagal (Password dan Re-Password Tidak Sama)
 def test_register_failed_password_mismatch():
-    clear_browser_cache()
-    time.sleep(2)
     driver.get("http://127.0.0.1:8000/register.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys("Alice")
     driver.find_element(By.NAME, "email").send_keys("alice@example.com")
@@ -137,15 +135,16 @@ def test_register_failed_password_mismatch():
     driver.find_element(By.NAME, "password").send_keys("password123")
     driver.find_element(By.NAME, "repassword").send_keys("password456")
     driver.find_element(By.NAME, "submit").click()
-    time.sleep(10)
-    
-    # Tunggu elemen alert muncul
-    error_element = WebDriverWait(driver, 5).until(
-        EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'alert-danger')]"))
+
+    time.sleep(2)  # Tunggu form memproses input
+
+    # Cari elemen dengan XPath yang benar
+    error_element = WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.XPATH, "/html/body/section/section/section/form/div[5]/p"))
     )
 
     error_message = error_element.text
-    assert "Data tidak boleh kosong !!" in error_message, "Error: Input kosong tidak ditangani dengan benar."
+    assert "Password tidak sama !!" in error_message, "Error: Pesan error tidak ditemukan atau tidak sesuai."
 
 # Test Case 8: Registrasi Gagal (Data Kosong)
 def test_register_failed_empty_data():
