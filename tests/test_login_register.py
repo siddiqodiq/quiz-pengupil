@@ -1,6 +1,5 @@
 import os
 import logging
-import requests
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -15,24 +14,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
-
-# Fungsi untuk cek apakah server sudah aktif
-def wait_for_server(url, timeout=30):
-    start_time = time.time()
-    while time.time() - start_time < timeout:
-        try:
-            response = requests.get(url)
-            if response.status_code == 200:
-                print("✅ Server is up and running!")
-                return True
-        except requests.exceptions.ConnectionError:
-            print("⏳ Waiting for server to start...")
-        time.sleep(5)
-    raise RuntimeError("❌ Server failed to start!")
-
-# Cek server sebelum Selenium berjalan
-BASE_URL = "http://127.0.0.1:8000/"
-wait_for_server(BASE_URL)
 
 # Set up WebDriver
 chrome_options = webdriver.ChromeOptions()
@@ -64,7 +45,7 @@ def run_test(test_function):
 
 # Test Case 1: Login Berhasil
 def test_login_success():
-    driver.get(BASE_URL + "login.php")
+    driver.get("http://127.0.0.1:8000/login.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "username"))).send_keys("syubbanul")
     driver.find_element(By.NAME, "password").send_keys("password123")
     driver.find_element(By.NAME, "submit").click()
@@ -73,7 +54,7 @@ def test_login_success():
 
 # Test Case 2: Login Gagal (Username Salah)
 def test_login_failed_username():
-    driver.get(BASE_URL + "login.php")
+    driver.get("http://127.0.0.1:8000/login.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "username"))).send_keys("user_tidak_ada")
     driver.find_element(By.NAME, "password").send_keys("password123")
     driver.find_element(By.NAME, "submit").click()
@@ -83,7 +64,7 @@ def test_login_failed_username():
 
 # Test Case 3: Login Gagal (Password Salah)
 def test_login_failed_password():
-    driver.get(BASE_URL + "login.php")
+    driver.get("http://127.0.0.1:8000/login.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "username"))).send_keys("syubbanul")
     driver.find_element(By.NAME, "password").send_keys("salah_password")
     driver.find_element(By.NAME, "submit").click()
@@ -93,7 +74,7 @@ def test_login_failed_password():
 
 # Test Case 4: Login Gagal (Data Kosong)
 def test_login_failed_empty_data():
-    driver.get(BASE_URL + "login.php")
+    driver.get("http://127.0.0.1:8000/login.php")
     driver.find_element(By.NAME, "submit").click()
     time.sleep(2)
     error_message = driver.find_element(By.CLASS_NAME, "alert-danger").text
@@ -101,7 +82,7 @@ def test_login_failed_empty_data():
 
 # Test Case 5: Registrasi Berhasil
 def test_register_success():
-    driver.get(BASE_URL + "register.php")
+    driver.get("http://127.0.0.1:8000/register.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys("Syubbanul Siddiq")
     driver.find_element(By.NAME, "email").send_keys("siddiq@example.com")
     driver.find_element(By.NAME, "username").send_keys("siddiq")
@@ -113,7 +94,7 @@ def test_register_success():
 
 # Test Case 6: Registrasi Gagal (Username Sudah Ada)
 def test_register_failed_username_exists():
-    driver.get(BASE_URL + "register.php")
+    driver.get("http://127.0.0.1:8000/register.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys("Jane Doe")
     driver.find_element(By.NAME, "email").send_keys("jane.doe@example.com")
     driver.find_element(By.NAME, "username").send_keys("siddiq")
@@ -126,7 +107,7 @@ def test_register_failed_username_exists():
 
 # Test Case 7: Registrasi Gagal (Password dan Re-Password Tidak Sama)
 def test_register_failed_password_mismatch():
-    driver.get(BASE_URL + "register.php")
+    driver.get("http://127.0.0.1:8000/register.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys("Alice")
     driver.find_element(By.NAME, "email").send_keys("alice@example.com")
     driver.find_element(By.NAME, "username").send_keys("alice")
@@ -139,7 +120,7 @@ def test_register_failed_password_mismatch():
 
 # Test Case 8: Registrasi Gagal (Data Kosong)
 def test_register_failed_empty_data():
-    driver.get(BASE_URL + "register.php")
+    driver.get("http://127.0.0.1:8000/register.php")
     driver.find_element(By.NAME, "submit").click()
     time.sleep(2)
     error_message = driver.find_element(By.CLASS_NAME, "alert-danger").text
