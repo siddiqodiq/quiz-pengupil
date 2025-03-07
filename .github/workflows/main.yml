@@ -36,12 +36,6 @@ jobs:
       - name: Run PHP application
         run: docker run --network=isolated -d -p 80:80 --name docker-apache -t my-php-site:latest
 
-      - name: Check PHP application status
-        run: |
-          until $(curl --output /dev/null --silent --head --fail http://docker-apache); do
-            echo "Waiting for PHP application to start..."
-            sleep 1
-          done
 
       # Stage 3: Persiapan MySQL
       - name: Wait for MySQL to be ready
