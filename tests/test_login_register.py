@@ -98,7 +98,7 @@ def test_register_success():
     driver.get("http://127.0.0.1:8000/register.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys("Syubbanul Siddiq")
     driver.find_element(By.NAME, "email").send_keys("siddiq@example.com")
-    driver.find_element(By.NAME, "username").send_keys("siddiq1")
+    driver.find_element(By.NAME, "username").send_keys("siddiq2")
     driver.find_element(By.NAME, "password").send_keys("password123")
     driver.find_element(By.NAME, "repassword").send_keys("password123")
     driver.find_element(By.NAME, "submit").click()
@@ -110,13 +110,19 @@ def test_register_failed_username_exists():
     driver.get("http://127.0.0.1:8000/register.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys("Jane Doe")
     driver.find_element(By.NAME, "email").send_keys("jane.doe@example.com")
-    driver.find_element(By.NAME, "username").send_keys("siddiq1")
+    driver.find_element(By.NAME, "username").send_keys("siddiq")
     driver.find_element(By.NAME, "password").send_keys("password123")
     driver.find_element(By.NAME, "repassword").send_keys("password123")
     driver.find_element(By.NAME, "submit").click()
-    time.sleep(2)
-    error_message = driver.find_element(By.CLASS_NAME, "alert-danger").text
-    assert "Username sudah terdaftar !!" in error_message, "Error: Sistem tidak mendeteksi username yang sudah ada."
+    time.sleep(5)
+    
+    # Tunggu elemen alert muncul
+    error_element = WebDriverWait(driver, 5).until(
+        EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'alert-danger')]"))
+    )
+
+    error_message = error_element.text
+    assert "Username sudah terdaftar !!" in error_message, "Error: Input kosong tidak ditangani dengan benar."
 
 # Test Case 7: Registrasi Gagal (Password dan Re-Password Tidak Sama)
 def test_register_failed_password_mismatch():
@@ -128,8 +134,14 @@ def test_register_failed_password_mismatch():
     driver.find_element(By.NAME, "repassword").send_keys("password456")
     driver.find_element(By.NAME, "submit").click()
     time.sleep(10)
-    error_message = driver.find_element(By.CLASS_NAME, "alert-danger").text
-    assert "Password tidak sama !!" in error_message, "Error: Sistem tidak menangani password yang tidak cocok."
+    
+    # Tunggu elemen alert muncul
+    error_element = WebDriverWait(driver, 5).until(
+        EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'alert-danger')]"))
+    )
+
+    error_message = error_element.text
+    assert "Data tidak boleh kosong !!" in error_message, "Error: Input kosong tidak ditangani dengan benar."
 
 # Test Case 8: Registrasi Gagal (Data Kosong)
 def test_register_failed_empty_data():
