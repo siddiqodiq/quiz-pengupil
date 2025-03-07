@@ -1,9 +1,3 @@
-FROM php:8.0-apache
-WORKDIR /var/www/html
-
-COPY ./ ./
-
-RUN rm -rf .git/*
-RUN rm -rf .github/*
-
-EXPOSE 80
+FROM php:7.4-apache
+COPY . /var/www/html/
+RUN docker-php-ext-install mysqli && docker-php-ext-enable mysqli

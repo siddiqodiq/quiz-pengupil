@@ -10,41 +10,44 @@ jobs:
     name: Functional Test
     permissions: write-all
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:5.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: quiz_pengupil
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
     steps:
       - name: Checkout the repo
         uses: actions/checkout@v4
 
-      - name: Create isolated network
-        run: docker network create --driver bridge isolated
-
-      - name: Deploy AUT
-        run: docker build -t my-php-site:latest .
-
-      - name: Run AUT
-        run: docker run --network=isolated -p 80:80 --name docker-apache -t -d my-php-site:latest
-
-      - name: Get AUT URL
+      - name: Build and run PHP application
         run: |
-          URL=http://$(ip -f inet -o addr show docker0 | awk '{print $4}' | cut -d '/' -f 1)
-          echo "URL=$URL" >> $GITHUB_ENV
+          docker build -t my-php-site:latest .
+          docker run -d -p 80:80 --name docker-apache -t my-php-site:latest
 
-      - name: Check AUT Url
-        run: curl ${{ env.URL }}
+      - name: Wait for MySQL to be ready
+        run: |
+          while ! mysqladmin ping -h127.0.0.1 -uroot -proot --silent; do
+            echo "Waiting for MySQL..."
+            sleep 1
+          done
 
-      - name: Selenium Preparation
-        run: docker run --network=isolated -d -p 4444:4444 -p 7900:7900 -v /dev/shm:/dev/shm --name firefox-standalone selenium/standalone-firefox:latest
+      - name: Import database
+        run: |
+          mysql -h127.0.0.1 -uroot -proot quiz_pengupil < db/quiz_pengupil.sql
 
-      - name: Wait for Selenium Hub
-        run: sh wait.sh
+      - name: Run Selenium tests
+        run: |
+          docker run --network=host -d -p 4444:4444 -p 7900:7900 -v /dev/shm:/dev/shm --name firefox-standalone selenium/standalone-firefox:latest
+          sh wait.sh
+          pip install -U selenium
+          python tests/test_login_register.py
 
-      - name: Check the Hub
-        run: curl http://localhost:4444/ui
-
-      - name: Install Selenium client
-        run: pip install -U selenium
-
-      - name: Run test
-        run: python tests/test_login_register.py
-
-      - name: Stop docker
-        run: docker stop docker-apache
+      - name: Stop containers
+        run: |
+          docker stop docker-apache
+          docker stop firefox-standalone
