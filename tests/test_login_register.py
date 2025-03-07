@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import time  # Impor modul time
 
 class LoginRegisterTest(unittest.TestCase):
     def setUp(self):
@@ -28,6 +29,7 @@ class LoginRegisterTest(unittest.TestCase):
 
         # Cek redirect ke index.php
         self.assertIn("index.php", self.browser.current_url)
+        time.sleep(5)  # Jeda 5 detik
 
     def test_login_failed_wrong_username(self):
         """Test Case 2: Login Gagal (Username Salah)"""
@@ -42,7 +44,8 @@ class LoginRegisterTest(unittest.TestCase):
 
         # Cek pesan error
         error_message = self.browser.find_element(By.CLASS_NAME, "alert-danger").text
-        self.assertEqual(error_message, "Register User Gagal !!")
+        self.assertEqual(error_message, "Username atau Password salah !!")
+        time.sleep(5)  # Jeda 5 detik
 
     def test_login_failed_empty_data(self):
         """Test Case 3: Login Gagal (Data Kosong)"""
@@ -53,6 +56,7 @@ class LoginRegisterTest(unittest.TestCase):
         # Cek pesan error
         error_message = self.browser.find_element(By.CLASS_NAME, "alert-danger").text
         self.assertEqual(error_message, "Data tidak boleh kosong !!")
+        time.sleep(5)  # Jeda 5 detik
 
     def test_register_success(self):
         """Test Case 4: Registrasi Berhasil"""
@@ -66,13 +70,14 @@ class LoginRegisterTest(unittest.TestCase):
 
         name_input.send_keys("Syubbanul Siddiq")
         email_input.send_keys("siddiq@example.com")
-        username_input.send_keys("siddiq")
+        username_input.send_keys("siddiq_new")
         password_input.send_keys("password123")
         repassword_input.send_keys("password123")
         submit_button.click()
 
         # Cek redirect ke index.php
         self.assertIn("index.php", self.browser.current_url)
+        time.sleep(5)  # Jeda 5 detik
 
     def test_register_failed_duplicate_username(self):
         """Test Case 5: Registrasi Gagal (Username Sudah Ada)"""
@@ -94,6 +99,7 @@ class LoginRegisterTest(unittest.TestCase):
         # Cek pesan error
         error_message = self.browser.find_element(By.CLASS_NAME, "alert-danger").text
         self.assertEqual(error_message, "Username sudah terdaftar !!")
+        time.sleep(5)  # Jeda 5 detik
 
     def test_register_failed_empty_data(self):
         """Test Case 6: Registrasi Gagal (Data Kosong)"""
@@ -104,6 +110,7 @@ class LoginRegisterTest(unittest.TestCase):
         # Cek pesan error
         error_message = self.browser.find_element(By.CLASS_NAME, "alert-danger").text
         self.assertEqual(error_message, "Data tidak boleh kosong !!")
+        time.sleep(5)  # Jeda 5 detik
 
 if __name__ == '__main__':
     unittest.main(verbosity=2, warnings='ignore')
