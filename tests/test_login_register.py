@@ -51,8 +51,8 @@ def run_test(test_function):
 # Test Case 1: Login Berhasil
 def test_login_success():
     driver.get("http://127.0.0.1:8000/login.php")
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "username"))).send_keys("syubbanul")
-    driver.find_element(By.NAME, "password").send_keys("password123")
+    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "username"))).send_keys("siddiq")
+    driver.find_element(By.NAME, "password").send_keys("siddiq123")
     driver.find_element(By.NAME, "submit").click()
     time.sleep(2)
     assert "index.php" in driver.current_url, "Error: Login gagal, tidak diarahkan ke index.php."
