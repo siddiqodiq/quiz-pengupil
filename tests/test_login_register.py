@@ -11,14 +11,14 @@ class LoginRegisterTest(unittest.TestCase):
         options = webdriver.FirefoxOptions()
         options.add_argument('--ignore-ssl-errors=yes')
         options.add_argument('--ignore-certificate-errors')
-        server = 'http://docker-apache:4444'
+        server = 'http://localhost:4444'
         self.browser = webdriver.Remote(command_executor=server, options=options)
         self.browser.implicitly_wait(10)
         self.addCleanup(self.browser.quit)
 
     def test_login_success(self):
         """Test Case 1: Login Berhasil"""
-        self.browser.get("http://docker-apache/login.php")
+        self.browser.get("http://localhost:8000/login.php")
         username_input = self.browser.find_element(By.ID, "username")
         password_input = self.browser.find_element(By.ID, "InputPassword")
         submit_button = self.browser.find_element(By.NAME, "submit")
@@ -33,7 +33,7 @@ class LoginRegisterTest(unittest.TestCase):
 
     def test_login_failed_wrong_username(self):
         """Test Case 2: Login Gagal (Username Salah)"""
-        self.browser.get("http://docker-apache/login.php")
+        self.browser.get("http://localhost:8000/login.php")
         username_input = self.browser.find_element(By.ID, "username")
         password_input = self.browser.find_element(By.ID, "InputPassword")
         submit_button = self.browser.find_element(By.NAME, "submit")
@@ -49,7 +49,7 @@ class LoginRegisterTest(unittest.TestCase):
 
     def test_login_failed_empty_data(self):
         """Test Case 3: Login Gagal (Data Kosong)"""
-        self.browser.get("http://docker-apache/login.php")
+        self.browser.get("http://localhost:8000/login.php")
         submit_button = self.browser.find_element(By.NAME, "submit")
         submit_button.click()
 
@@ -60,7 +60,7 @@ class LoginRegisterTest(unittest.TestCase):
 
     def test_register_success(self):
         """Test Case 4: Registrasi Berhasil"""
-        self.browser.get("http://docker-apache/register.php")
+        self.browser.get("http://localhost:8000/register.php")
         name_input = self.browser.find_element(By.ID, "name")
         email_input = self.browser.find_element(By.ID, "InputEmail")
         username_input = self.browser.find_element(By.ID, "username")
@@ -81,7 +81,7 @@ class LoginRegisterTest(unittest.TestCase):
 
     def test_register_failed_duplicate_username(self):
         """Test Case 5: Registrasi Gagal (Username Sudah Ada)"""
-        self.browser.get("http://docker-apache/register.php")
+        self.browser.get("http://localhost:8000/register.php")
         name_input = self.browser.find_element(By.ID, "name")
         email_input = self.browser.find_element(By.ID, "InputEmail")
         username_input = self.browser.find_element(By.ID, "username")
@@ -103,7 +103,7 @@ class LoginRegisterTest(unittest.TestCase):
 
     def test_register_failed_empty_data(self):
         """Test Case 6: Registrasi Gagal (Data Kosong)"""
-        self.browser.get("http://docker-apache/register.php")
+        self.browser.get("http://localhost:8000/register.php")
         submit_button = self.browser.find_element(By.NAME, "submit")
         submit_button.click()
 

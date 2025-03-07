@@ -7,10 +7,7 @@ on:
 
 jobs:
   test:
-    name: Functional Test
-    permissions: write-all
     runs-on: ubuntu-latest
-
     services:
       mysql:
         image: mysql:5.7
@@ -22,22 +19,21 @@ jobs:
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      # Stage 1: Persiapan Lingkungan
-      - name: Checkout the repo
-        uses: actions/checkout@v4
+      # Stage 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Set up Docker network
-        run: docker network create --driver bridge isolated
+      # Stage 2: Set up PHP and dependencies
+      - name: Set up PHP and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y php php-cli php-mysql
 
-      # Stage 2: Build dan Jalankan Aplikasi PHP
-      - name: Build PHP application
-        run: docker build -t my-php-site:latest .
+      # Stage 3: Start local PHP server
+      - name: Start local server
+        run: php -S localhost:8000 -t . &
 
-      - name: Run PHP application
-        run: docker run --network=isolated -d -p 80:80 --name docker-apache -t my-php-site:latest
-
-
-      # Stage 3: Persiapan MySQL
+      # Stage 4: Wait for MySQL to be ready
       - name: Wait for MySQL to be ready
         run: |
           while ! mysqladmin ping -h127.0.0.1 -uroot -proot --silent; do
@@ -45,31 +41,13 @@ jobs:
             sleep 1
           done
 
+      # Stage 5: Import database
       - name: Import database
         run: |
           mysql -h127.0.0.1 -uroot -proot quiz_pengupil < db/quiz_pengupil.sql
 
-      # Stage 4: Persiapan Selenium
-      - name: Run Selenium Standalone Firefox
-        run: |
-          docker run --network=isolated -d -p 4444:4444 -p 7900:7900 -v /dev/shm:/dev/shm --name firefox-standalone selenium/standalone-firefox:latest
-
-      - name: Wait for Selenium Hub
-        run: sh wait.sh
-
-      # Stage 5: Jalankan Pengujian
-      - name: Install Selenium client
-        run: pip install -U selenium
-
+      # Stage 6: Run Selenium tests
       - name: Run Selenium tests
-        run: python tests/test_login_register.py
-
-      # Stage 6: Pembersihan
-      - name: Stop PHP application container
-        run: docker stop docker-apache
-
-      - name: Stop Selenium container
-        run: docker stop firefox-standalone
-
-      - name: Remove Docker network
-        run: docker network rm isolated
+        run: |
+          pip install -U selenium
+          python -m unittest discover tests/
