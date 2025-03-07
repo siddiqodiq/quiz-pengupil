@@ -31,7 +31,7 @@ def wait_for_server(url, timeout=30):
     raise RuntimeError("❌ Server failed to start!")
 
 # Cek server sebelum Selenium berjalan
-BASE_URL = "http://127.0.0.1:8000/"
+BASE_URL = "http://localhost:8000/"
 wait_for_server(BASE_URL)
 
 # Set up WebDriver
