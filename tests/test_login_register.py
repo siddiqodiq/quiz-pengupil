@@ -42,29 +42,17 @@ def run_test(test_function):
     """
     try:
         test_function()
-        test_results.append((test_function.__name__, "✅ PASSED", ""))
+        test_results.append((test_function.__name__, "🟢PASSED", ""))
     except AssertionError as e:
-        test_results.append((test_function.__name__, "❌ FAILED", str(e)))
+        test_results.append((test_function.__name__, "🔴 FAILED", str(e)))
     except Exception as e:
-        test_results.append((test_function.__name__, "⚠️ ERROR", str(e)))
-
-# Test Case 5: Registrasi Berhasil
-def test_register_success():
-    driver.get("http://127.0.0.1:8000/register.php")
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys("Syubbanul Siddiq")
-    driver.find_element(By.NAME, "email").send_keys("siddiq@example.com")
-    driver.find_element(By.NAME, "username").send_keys("siddiq")  # Username untuk registrasi
-    driver.find_element(By.NAME, "password").send_keys("password123")  # Password untuk registrasi
-    driver.find_element(By.NAME, "repassword").send_keys("password123")
-    driver.find_element(By.NAME, "submit").click()
-    time.sleep(2)
-    assert "index.php" in driver.current_url, "Error: Registrasi gagal, tidak diarahkan ke index.php."
+        test_results.append((test_function.__name__, "🟡 ERROR", str(e)))
 
 # Test Case 1: Login Berhasil
 def test_login_success():
     driver.get("http://127.0.0.1:8000/login.php")
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "username"))).send_keys("siddiq")  # Username yang didaftarkan
-    driver.find_element(By.NAME, "password").send_keys("password123")  # Password yang didaftarkan
+    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "username"))).send_keys("syubbanul")
+    driver.find_element(By.NAME, "password").send_keys("password123")
     driver.find_element(By.NAME, "submit").click()
     time.sleep(2)
     assert "index.php" in driver.current_url, "Error: Login gagal, tidak diarahkan ke index.php."
@@ -82,8 +70,8 @@ def test_login_failed_username():
 # Test Case 3: Login Gagal (Password Salah)
 def test_login_failed_password():
     driver.get("http://127.0.0.1:8000/login.php")
-    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "username"))).send_keys("siddiq")  # Username yang didaftarkan
-    driver.find_element(By.NAME, "password").send_keys("salah_password")  # Password salah
+    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "username"))).send_keys("syubbanul")
+    driver.find_element(By.NAME, "password").send_keys("salah_password")
     driver.find_element(By.NAME, "submit").click()
     time.sleep(2)
     error_message = driver.find_element(By.CLASS_NAME, "alert-danger").text
@@ -97,24 +85,30 @@ def test_login_failed_empty_data():
     error_message = driver.find_element(By.CLASS_NAME, "alert-danger").text
     assert "Data tidak boleh kosong !!" in error_message, "Error: Input kosong tidak ditangani dengan benar."
 
+# Test Case 5: Registrasi Berhasil
+def test_register_success():
+    driver.get("http://127.0.0.1:8000/register.php")
+    WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys("Syubbanul Siddiq")
+    driver.find_element(By.NAME, "email").send_keys("siddiq@example.com")
+    driver.find_element(By.NAME, "username").send_keys("siddiq")
+    driver.find_element(By.NAME, "password").send_keys("password123")
+    driver.find_element(By.NAME, "repassword").send_keys("password123")
+    driver.find_element(By.NAME, "submit").click()
+    time.sleep(2)
+    assert "index.php" in driver.current_url, "Error: Registrasi gagal, tidak diarahkan ke index.php."
+
 # Test Case 6: Registrasi Gagal (Username Sudah Ada)
 def test_register_failed_username_exists():
     driver.get("http://127.0.0.1:8000/register.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys("Jane Doe")
     driver.find_element(By.NAME, "email").send_keys("jane.doe@example.com")
-    driver.find_element(By.NAME, "username").send_keys("siddiq")  # Username yang sudah ada
+    driver.find_element(By.NAME, "username").send_keys("siddiq")
     driver.find_element(By.NAME, "password").send_keys("password123")
     driver.find_element(By.NAME, "repassword").send_keys("password123")
     driver.find_element(By.NAME, "submit").click()
-
-    # Tunggu hingga pesan error muncul
-    try:
-        error_message = WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "alert-danger"))
-        )
-        assert "Username sudah terdaftar !!" in error_message.text, "Error: Sistem tidak mendeteksi username yang sudah ada."
-    except Exception as e:
-        log_result("test_register_failed_username_exists", "⚠️ ERROR", f"Pesan error tidak ditemukan: {str(e)}")
+    time.sleep(2)
+    error_message = driver.find_element(By.CLASS_NAME, "alert-danger").text
+    assert "Username sudah terdaftar !!" in error_message, "Error: Sistem tidak mendeteksi username yang sudah ada."
 
 # Test Case 7: Registrasi Gagal (Password dan Re-Password Tidak Sama)
 def test_register_failed_password_mismatch():
@@ -133,17 +127,17 @@ def test_register_failed_password_mismatch():
 def test_register_failed_empty_data():
     driver.get("http://127.0.0.1:8000/register.php")
     driver.find_element(By.NAME, "submit").click()
-    time.sleep(10)
+    time.sleep(2)
     error_message = driver.find_element(By.CLASS_NAME, "alert-danger").text
     assert "Data tidak boleh kosong !!" in error_message, "Error: Input kosong tidak ditangani dengan benar."
 
 # Jalankan semua test case menggunakan run_test()
 test_cases = [
-    test_register_success,  # Registrasi terlebih dahulu
-    test_login_success,     # Login dengan kredensial yang didaftarkan
+    test_login_success,
     test_login_failed_username,
     test_login_failed_password,
     test_login_failed_empty_data,
+    test_register_success,
     test_register_failed_username_exists,
     test_register_failed_password_mismatch,
     test_register_failed_empty_data
