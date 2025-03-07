@@ -1,0 +1,38 @@
+name: CI/CD Pipeline for Login and Register Testing
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Functional Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker network
+        run: docker network create --driver bridge isolated
+
+      - name: Build and run PHP application
+        run: |
+          docker build -t my-php-site:latest .
+          docker run --network=isolated -p 80:80 --name docker-apache -t -d my-php-site:latest
+
+      - name: Run Selenium Firefox container
+        run: |
+          docker run --network=isolated -d -p 4444:4444 -v /dev/shm:/dev/shm --name selenium-firefox selenium/standalone-firefox:latest
+          while ! curl -s http://localhost:4444/wd/hub/status | grep -q "ready"; do sleep 1; done
+
+      - name: Install dependencies
+        run: pip install -U selenium
+
+      - name: Run Selenium tests
+        run: python -m unittest tests/test_login_register.py
+
+      - name: Stop Docker containers
+        run: |
+          docker stop docker-apache
+          docker stop selenium-firefox
