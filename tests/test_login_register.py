@@ -57,8 +57,16 @@ def test_login_success():
     time.sleep(2)
     assert "index.php" in driver.current_url, "Error: Login gagal, tidak diarahkan ke index.php."
 
+def clear_browser_cache():
+    driver.delete_all_cookies()
+    driver.execute_script("window.localStorage.clear();")
+    driver.execute_script("window.sessionStorage.clear();")
+    
+
 # Test Case 2: Login Gagal (Username Salah)
 def test_login_failed_username():
+    clear_browser_cache()
+    time.sleep(2)
     driver.get("http://127.0.0.1:8000/login.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "username"))).send_keys("user_tidak_ada")
     driver.find_element(By.NAME, "password").send_keys("password123")
@@ -132,8 +140,13 @@ def test_register_failed_empty_data():
     driver.find_element(By.NAME, "password").send_keys(" ")
     driver.find_element(By.NAME, "repassword").send_keys(" ")
     driver.find_element(By.NAME, "submit").click()
-    time.sleep(10)
-    error_message = driver.find_element(By.CLASS_NAME, "alert-danger").text
+    
+    # Tunggu elemen alert muncul
+    error_element = WebDriverWait(driver, 5).until(
+        EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'alert-danger')]"))
+    )
+
+    error_message = error_element.text
     assert "Data tidak boleh kosong !!" in error_message, "Error: Input kosong tidak ditangani dengan benar."
 
 # Jalankan semua test case menggunakan run_test()
