@@ -133,9 +133,11 @@ def test_register_failed_password_mismatch():
 
 # Test Case 8: Registrasi Gagal (Data Kosong)
 def test_register_failed_empty_data():
+    clear_browser_cache()
+    time.sleep(2)
     driver.get("http://127.0.0.1:8000/register.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys(" ")
-    driver.find_element(By.NAME, "email").send_keys(" ")
+    driver.find_element(By.NAME, "email").send_keys("siddiq@gmail.com")
     driver.find_element(By.NAME, "username").send_keys(" ")
     driver.find_element(By.NAME, "password").send_keys(" ")
     driver.find_element(By.NAME, "repassword").send_keys(" ")
