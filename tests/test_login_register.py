@@ -107,8 +107,6 @@ def test_register_success():
 
 # Test Case 6: Registrasi Gagal (Username Sudah Ada)
 def test_register_failed_username_exists():
-    clear_browser_cache()
-    time.sleep(2)
     driver.get("http://127.0.0.1:8000/register.php")
     WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.NAME, "name"))).send_keys("Jane Doe")
     driver.find_element(By.NAME, "email").send_keys("siddiqodiq@gmail.com")
