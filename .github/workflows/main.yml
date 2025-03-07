@@ -1,4 +1,4 @@
-name: Automated Selenium Testing
+name: Selenium Tests
 
 on:
   push:
@@ -9,77 +9,77 @@ on:
       - main
 
 jobs:
-  run-selenium-tests:
+  login-register-test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Clone Repository
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Create Temporary Index File
+    - name: Create a temporary index.php
       run: |
-        echo "<?php echo 'PHP server is running!'; ?>" > index.php
+        echo "<?php echo 'Server is running!'; ?>" > index.php
 
-    - name: Install Required Packages
+    - name: Install dependencies
       run: |
         sudo apt update
         sudo apt install -y php php-cli php-mysql unzip google-chrome-stable mariadb-server mariadb-client curl
 
-    - name: Start and Configure MariaDB
+    - name: Start MariaDB Service
       run: |
         sudo systemctl start mariadb
         sudo systemctl enable mariadb
         sudo systemctl restart mariadb
+
+    - name: Setup Database
+      run: |
         sudo mysql --user=root --execute="CREATE DATABASE IF NOT EXISTS quiz_pengupil;"
         sudo mysql --user=root quiz_pengupil < db/quiz_pengupil.sql
-        sudo mysql --user=root --execute="GRANT ALL PRIVILEGES ON quiz_pengupil.* TO 'root'@'localhost';"
+        sudo mysql --user=root --execute="GRANT ALL PRIVILEGES ON quiz_pengupil.* TO 'root'@'localhost' IDENTIFIED BY '';"
         sudo mysql --user=root --execute="FLUSH PRIVILEGES;"
 
-    - name: Verify Database Configuration
+    - name: Verify Database Setup
       run: |
         sudo mysql -u root -e "USE quiz_pengupil; SHOW TABLES;"
 
-    - name: Launch PHP Development Server
+    - name: Start PHP server
       run: |
-        nohup php -S 127.0.0.1:8000 -t . > php_server.log 2>&1 &
+        nohup php -S 127.0.0.1:8000 -t . > server.log 2>&1 &
         sleep 5
-        echo "✅ PHP Server Log:"
-        cat php_server.log
+        echo "✅ Checking server log:"
+        cat server.log
 
-    - name: Ensure Server is Running
+    - name: Wait for server to start
       run: |
         for i in {1..10}; do
-          if curl -s http://127.0.0.1:8000/; then
-            echo "✅ PHP server is up and running!"
-            exit 0
-          fi
-          echo "⏳ Waiting for PHP server to start..."
+          curl -s http://127.0.0.1:8000/ && echo "✅ Server is up!" && exit 0
+          echo "⏳ Waiting for server..."
           sleep 2
         done
-        echo "❌ PHP server failed to start!"
+        echo "❌ Server failed to start!"
         exit 1
 
-    - name: Set Up Python Environment
+    - name: Set Up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
 
-    - name: Install Python Libraries
+    - name: Install Python Dependencies
       run: |
         python -m pip install --upgrade pip
         pip install selenium webdriver-manager pytest chromedriver-autoinstaller
 
-    - name: Execute Selenium Test Suite
+    - name: Run Selenium Tests
       run: python tests/test_login_register.py
 
-    - name: Archive Test Results
+    - name: Upload Test Results
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: selenium-test-results
         path: test-results/
 
-    - name: Archive Test Execution Logs
+    - name: Upload Test Logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
