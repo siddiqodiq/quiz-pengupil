@@ -1,4 +1,4 @@
-name: CI/CD Pipeline for Login and Register Testing
+name: OTF Testing
 
 on:
   push:
@@ -8,31 +8,43 @@ on:
 jobs:
   test:
     name: Functional Test
+    permissions: write-all
     runs-on: ubuntu-latest
     steps:
       - name: Checkout the repo
         uses: actions/checkout@v4
 
-      - name: Set up Docker network
+      - name: Create isolated network
         run: docker network create --driver bridge isolated
 
-      - name: Build and run PHP application
-        run: |
-          docker build -t my-php-site:latest .
-          docker run --network=isolated -p 80:80 --name docker-apache -t -d my-php-site:latest
+      - name: Deploy AUT
+        run: docker build -t my-php-site:latest .
 
-      - name: Run Selenium Firefox container
-        run: |
-          docker run --network=isolated -d -p 4444:4444 -v /dev/shm:/dev/shm --name selenium-firefox selenium/standalone-firefox:latest
-          while ! curl -s http://localhost:4444/wd/hub/status | grep -q "ready"; do sleep 1; done
+      - name: Run AUT
+        run: docker run --network=isolated -p 80:80 --name docker-apache -t -d my-php-site:latest
 
-      - name: Install dependencies
+      - name: Get AUT URL
+        run: |
+          URL=http://$(ip -f inet -o addr show docker0 | awk '{print $4}' | cut -d '/' -f 1)
+          echo "URL=$URL" >> $GITHUB_ENV
+
+      - name: Check AUT Url
+        run: curl ${{ env.URL }}
+
+      - name: Selenium Preparation
+        run: docker run --network=isolated -d -p 4444:4444 -p 7900:7900 -v /dev/shm:/dev/shm --name firefox-standalone selenium/standalone-firefox:latest
+
+      - name: Wait for Selenium Hub
+        run: sh wait.sh
+
+      - name: Check the Hub
+        run: curl http://localhost:4444/ui
+
+      - name: Install Selenium client
         run: pip install -U selenium
 
-      - name: Run Selenium tests
-        run: python -m unittest tests/test_login_register.py
+      - name: Run test
+        run: python tests/test_login_register.py
 
-      - name: Stop Docker containers
-        run: |
-          docker stop docker-apache
-          docker stop selenium-firefox
+      - name: Stop docker
+        run: docker stop docker-apache
