@@ -1,53 +1,96 @@
-name: OTF Testing
+name: Selenium Tests
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  test:
+  selenium-test:
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:5.7
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: quiz_pengupil
-        ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
-      # Stage 1: Checkout code
-      - name: Checkout code
-        uses: actions/checkout@v3
+      # Stage 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Stage 2: Set up PHP and dependencies
-      - name: Set up PHP and dependencies
+      # Stage 2: Install dependencies
+      - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y php php-cli php-mysql
+          sudo apt update
+          sudo apt install -y php php-cli php-mysql unzip
+          composer install
 
-      # Stage 3: Start local PHP server
-      - name: Start local server
-        run: php -S localhost:8000 -t . &
-
-      # Stage 4: Wait for MySQL to be ready
-      - name: Wait for MySQL to be ready
+      # Stage 3: Start MySQL service
+      - name: Start MySQL service
         run: |
-          while ! mysqladmin ping -h127.0.0.1 -uroot -proot --silent; do
-            echo "Waiting for MySQL..."
-            sleep 1
-          done
+          sudo systemctl start mysql
+          sudo mysql -e "CREATE DATABASE IF NOT EXISTS quiz_pengupil;"
+          sudo mysql -e "GRANT ALL PRIVILEGES ON quiz_pengupil.* TO 'root'@'localhost' IDENTIFIED BY '';"
+          sudo mysql -e "FLUSH PRIVILEGES;"
 
-      # Stage 5: Import database
+      # Stage 4: Import database
       - name: Import database
         run: |
-          mysql -h127.0.0.1 -uroot -proot quiz_pengupil < db/quiz_pengupil.sql
+          mysql -h127.0.0.1 -uroot quiz_pengupil < db/quiz_pengupil.sql
 
-      # Stage 6: Run Selenium tests
-      - name: Run Selenium tests
+      # Stage 5: Start PHP server
+      - name: Start PHP server
         run: |
-          pip install -U selenium
-          python -m unittest discover tests/
+          php -S 127.0.0.1:8000 -t . > server.log 2>&1 &
+
+      # Stage 6: Wait for server to start
+      - name: Wait for server to start
+        run: sleep 10
+
+      # Stage 7: Set Up Python
+      - name: Set Up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Stage 8: Install Python dependencies
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install selenium webdriver-manager pytest
+
+      # Stage 9: Install Chrome and ChromeDriver
+      - name: Install Chrome and ChromeDriver
+        run: |
+          sudo apt update
+          sudo apt install -y wget unzip
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt update
+          sudo apt install -y google-chrome-stable
+          CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
+          CHROMEDRIVER_VERSION=$(curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$CHROME_VERSION)
+          wget -O chromedriver.zip https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip
+          sudo unzip chromedriver.zip -d /usr/local/bin/
+          sudo chmod +x /usr/local/bin/chromedriver
+          rm chromedriver.zip
+
+      # Stage 10: Run Selenium Tests
+      - name: Run Selenium Tests
+        run: |
+          python -m pytest tests/test_login_register.py --log-file=test-results/test_log.txt --junitxml=test-results/results.xml
+
+      # Stage 11: Upload Test Results
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-test-results
+          path: test-results/
+
+      # Stage 12: Upload Test Logs
+      - name: Upload Test Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-test-logs
+          path: test-results/test_log.txt
